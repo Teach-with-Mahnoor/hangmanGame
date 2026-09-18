@@ -1,0 +1,3 @@
+# CodeAlpha Hangman Game — Python dependencies
+# The only dependency needed to run:  python app.py
+Flask>=3.0

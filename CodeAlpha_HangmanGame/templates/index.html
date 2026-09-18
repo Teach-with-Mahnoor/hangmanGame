@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CodeAlpha Hangman — Premium Edition</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Ccircle%20cx='32'%20cy='32'%20r='24'%20fill='none'%20stroke='%2322d3ee'%20stroke-width='7'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+  <!-- Ambient background: glowing orbs + perspective grid -->
+  <div class="bg-layer" aria-hidden="true">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+    <div class="bg-grid"></div>
+  </div>
+
+  <!-- ================= Header ================= -->
+  <header class="site-header">
+    <div class="brand">
+      <h1 class="brand-title">HANGMAN</h1>
+      <p class="brand-label">CODEALPHA PYTHON INTERNSHIP</p>
+    </div>
+
+    <div class="header-right">
+      <span id="status-chip" class="status-chip playing">
+        <span class="dot" aria-hidden="true"></span>
+        <span id="status-text">LIVE GAME</span>
+      </span>
+      <nav class="header-nav" aria-label="Game actions">
+        <button id="new-game-button" class="btn btn-ghost" type="button">NEW GAME</button>
+        <button id="how-to-play-button" class="btn btn-ghost" type="button">HOW TO PLAY</button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ================= Statistics bar ================= -->
+  <section class="stats-bar" aria-label="Game statistics">
+    <div class="stat-card">
+      <span class="stat-value" id="stat-attempts">6</span>
+      <span class="stat-label">ATTEMPTS</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-value" id="stat-wrong">0 / 6</span>
+      <span class="stat-label">WRONG GUESSES</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-value" id="stat-score">0</span>
+      <span class="stat-label">SCORE</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-value" id="stat-streak">0</span>
+      <span class="stat-label">STREAK</span>
+    </div>
+  </section>
+
+  <!-- ================= Game area ================= -->
+  <main class="game-grid">
+    <!-- Left: the hangman stage -->
+    <section class="card stage-card tilt" aria-label="Hangman stage">
+      <div class="card-caption">HANGMAN STAGE</div>
+      <div class="stage-inner" id="hangman-stage">
+        <div class="stage-glow" aria-hidden="true"></div>
+        <div class="particles" id="particles" aria-hidden="true"></div>
+
+        <svg class="hangman-svg" viewBox="0 0 360 380" xmlns="http://www.w3.org/2000/svg"
+             role="img" aria-label="Hangman drawing that grows with wrong guesses">
+          <defs>
+            <filter id="glow-figure" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="3.5" result="blur"></feGaussianBlur>
+              <feMerge>
+                <feMergeNode in="blur"></feMergeNode>
+                <feMergeNode in="SourceGraphic"></feMergeNode>
+              </feMerge>
+            </filter>
+            <radialGradient id="floor-glow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="rgba(34, 211, 238, 0.20)"></stop>
+              <stop offset="100%" stop-color="rgba(34, 211, 238, 0)"></stop>
+            </radialGradient>
+          </defs>
+
+          <ellipse class="stage-floor" cx="175" cy="342" rx="165" ry="22" fill="url(#floor-glow)"></ellipse>
+
+          <g class="gallows">
+            <line x1="50"  y1="330" x2="300" y2="330" stroke-width="9"></line>
+            <line x1="120" y1="330" x2="120" y2="60"  stroke-width="9"></line>
+            <line x1="120" y1="60"  x2="260" y2="60"  stroke-width="9"></line>
+            <line x1="120" y1="108" x2="166" y2="62"  stroke-width="5"></line>
+            <line x1="260" y1="60"  x2="260" y2="86"  stroke-width="4"></line>
+          </g>
+
+          <g class="figure" filter="url(#glow-figure)">
+            <circle id="part-head" class="part-head" cx="260" cy="114" r="30"></circle>
+            <line id="part-body" class="part-body" x1="260" y1="144" x2="260" y2="246"></line>
+            <line id="part-arm1" class="part-arm1" x1="260" y1="170" x2="214" y2="204"></line>
+            <line id="part-arm2" class="part-arm2" x1="260" y1="170" x2="306" y2="204"></line>
+            <line id="part-leg1" class="part-leg1" x1="260" y1="246" x2="218" y2="296"></line>
+            <line id="part-leg2" class="part-leg2" x1="260" y1="246" x2="302" y2="296"></line>
+          </g>
+        </svg>
+      </div>
+    </section>
+
+    <!-- Right: word, input, keyboard -->
+    <section class="card panel-card tilt" aria-label="Game controls">
+      <div class="card-caption">YOUR WORD</div>
+      <div id="word-tiles" class="word-tiles"></div>
+      <p id="status-line" class="status-line info" aria-live="polite">Loading game…</p>
+
+      <div class="input-block">
+        <label class="input-label" for="letter-input">ENTER YOUR LETTER</label>
+        <div class="input-row">
+          <input id="letter-input" type="text" maxlength="1" autocomplete="off"
+                 spellcheck="false" autofocus aria-label="Enter one letter">
+          <button id="guess-button" class="btn btn-primary" type="button">GUESS</button>
+        </div>
+      </div>
+
+      <div id="keyboard" class="keyboard" aria-label="Virtual keyboard"></div>
+    </section>
+  </main>
+
+  <!-- ================= Footer ================= -->
+  <footer class="site-footer">
+    <span>CodeAlpha Python Programming Internship — Task 1: Hangman Game</span>
+    <span class="footer-hint">Tip: physical keyboard works too — type a letter, then Enter.</span>
+  </footer>
+
+  <!-- ================= How to Play modal ================= -->
+  <div id="how-to-play-modal" class="modal hidden" role="dialog" aria-modal="true"
+       aria-labelledby="modal-title">
+    <div class="modal-backdrop" id="modal-backdrop"></div>
+    <div class="modal-card">
+      <h2 id="modal-title">HOW TO PLAY</h2>
+      <ol class="modal-steps">
+        <li>Guess one letter at a time.</li>
+        <li>Correct letters appear in the word.</li>
+        <li>Incorrect guesses build the Hangman.</li>
+        <li>You have 6 incorrect guesses.</li>
+        <li>Guess the complete word before all 6 attempts are used.</li>
+      </ol>
+      <button id="modal-close-button" class="btn btn-primary" type="button">GOT IT</button>
+    </div>
+  </div>
+
+  <!-- ================= Result overlay (win / loss) ================= -->
+  <div id="result-overlay" class="overlay hidden">
+    <div class="confetti" id="confetti" aria-hidden="true"></div>
+    <div class="result-card" id="result-card">
+      <h2 id="result-title"></h2>
+      <p id="result-subtitle"></p>
+      <div class="summary">
+        <div class="summary-row"><span>RESULT</span><strong id="summary-result"></strong></div>
+        <div class="summary-row"><span>SECRET WORD</span><strong id="summary-word"></strong></div>
+        <div class="summary-row"><span>SCORE</span><strong id="summary-score"></strong></div>
+        <div class="summary-row"><span>WRONG GUESSES</span><strong id="summary-wrong"></strong></div>
+        <div class="summary-row"><span>ATTEMPTS USED</span><strong id="summary-attempts"></strong></div>
+        <div class="summary-row"><span>STREAK</span><strong id="summary-streak"></strong></div>
+      </div>
+      <button id="play-again-button" class="btn btn-primary btn-wide" type="button">PLAY AGAIN</button>
+    </div>
+  </div>
+
+  <!-- Toast notifications -->
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
